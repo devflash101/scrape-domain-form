@@ -47,8 +47,9 @@ def FindForm(driver): # check whether form exist in the frame.
 
     # check if form exist
     for field in form_fields:
+        xpath_expression = f"//input[@name='{field}']"
         try:
-            form_element = driver.find_element(By.NAME, field)
+            form_element = driver.find_element(By.XPATH, xpath_expression)
             if form_element:
                 ret = 1
         except:
@@ -56,8 +57,9 @@ def FindForm(driver): # check whether form exist in the frame.
 
     # check phone field exist
     for field in phone_fields:
+        xpath_expression = f"//input[@name='{field}']"
         try:
-            phone_field = driver.find_element(By.NAME, field)
+            phone_field = driver.find_element(By.XPATH, xpath_expression)
             if phone_field:
                 # name_field.send_keys('John Doe')
                 is_phone = 1
@@ -116,6 +118,7 @@ def LeadGeneration(driver): # check whether form exist in the page.
 
 def NavigateDomain(url):
     chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument("--start-maximized")
     #chrome_options.page_load_strategy = self.load_mode
     driver = webdriver.Chrome(options = chrome_options)
     # chrome_options.add_argument('--ignore-certificate-errors')
@@ -123,6 +126,20 @@ def NavigateDomain(url):
 
     driver.get(url)
 
+    # close recommandation system
+    try:
+        # This XPath finds any button element whose class attribute contains the word 'close'
+        close_button = driver.find_element(By.XPATH, "//button[contains(@aria-label, 'Dismiss')]")
+        if close_button:
+            print('close button found')
+            close_button.click()
+            print("Close button clicked.")
+    except Exception as e:
+        print("Close button not clicked.")
+
+
+
+    # Accept cookies button
     button_expression = f"//button[contains(text(), 'Accept')]"
     try:
         accept_link = driver.find_element(By.XPATH, button_expression)
@@ -131,6 +148,31 @@ def NavigateDomain(url):
             accept_link.click()
     except:
         pass
+
+    # Accept cookies <a>
+    button_expression = f"//a[contains(text(), 'Accept')]"
+    try:
+        accept_link = driver.find_element(By.XPATH, button_expression)
+        if accept_link:
+            print('accept anchor clicked')
+            accept_link.click()
+    except:
+        pass
+
+    # close popup dlg.
+    # Find the button by class name containing 'close' and click it
+    # This XPath finds any button element whose class attribute contains the word 'close'
+    close_buttons = driver.find_elements(By.XPATH, "//button[contains(@aria-label, 'close popup')]")
+    if close_buttons:
+        print('close button found')
+        for close_button in close_buttons:
+            # close_buttons[1].click()
+            try:
+                close_button.click()
+            except Exception as e:
+                # print("Close button not clicked.")
+                pass
+
     
     form_filled = LeadGeneration(driver)
     if not form_filled:
@@ -163,6 +205,22 @@ def NavigateDomain(url):
             except:
                 pass
 
+    
+    # # without <span>
+    # word = 'Contact'
+    # xpath_expression = f"//a[contains(text(), '{word}')]"
+    # # xpath_expression = f"//a[contains(translate(text(), 'CONTACT', 'contact'), 'contact')]"
+    # try:
+    #     anchor_links = driver.find_elements(By.XPATH, xpath_expression)
+
+    #     if anchor_links:
+    #         print('anchor: ' + word)
+    #         anchor_links[0].click()
+    #         form_filled = LeadGeneration(driver)
+    #         driver.back()
+    # except:
+    #     pass
+
     time.sleep(5)
     # while True:
     #     pass
@@ -180,7 +238,10 @@ def NavigateDomain(url):
 # NavigateDomain('https://goguardian.com/')
 # NavigateDomain('https://claylacy.com/')
 # NavigateDomain('https://marketshareonline.com/')
-NavigateDomain('https://intrepidib.com/')
+# NavigateDomain('https://intrepidib.com/')
+# NavigateDomain('https://alpertandalpert.com/')
+# NavigateDomain('https://yscouts.com/')
+NavigateDomain('https://laneterralever.com/')
 
 
 '''
