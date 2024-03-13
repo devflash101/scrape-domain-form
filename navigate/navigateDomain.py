@@ -15,12 +15,16 @@
 #   ...
 #   check phone number
 #   check captcha
+from re import sub
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
+from urllib.parse import urlparse
+from datetime import datetime
+from .ioCSV import ExtractData
 
 anchor_words = ['Demo', 'Call', 'Book', 'Schedule', 'Consultation', 'Consult', 'Appointment', 'Get Started', 'Start', 'Inquire', 'Learn', 'Discover', 'More Info', 'Find Out', 'Get a Quote', 'Talk',
                 'Explore', 'Details', 'Request', 'Connect', 'Get in', 'Contact']
@@ -29,7 +33,22 @@ form_fields = ['firstname', 'lastname', 'name', 'email', 'company', 'company_web
 
 phone_fields = ['phone', 'your-phone']
 
-def FillForm(driver):
+def FillForm(driver, anchor_text):
+    data = []
+
+    # keep domain url.
+    current_url = driver.current_url
+    parsed_url = urlparse(current_url)
+    data.append('domain: ' + parsed_url.netloc)
+    # keep date filled out form
+    today = datetime.today()
+    data.append('date: ' + today.strftime("%Y-%m-%d"))  # This formats the date as YYYY-MM-DD
+    # keep time filled out form
+    now = datetime.now()
+    data.append('time: '+ now.strftime("%H:%M:%S"))
+
+    data.append('anchor text: ' + anchor_text)
+    
     for field in form_fields:
         try:
             form_element = driver.find_element(By.NAME, field)
@@ -37,9 +56,16 @@ def FillForm(driver):
                 form_element.send_keys('John Doe')
         except:
             pass
+        
+    xpath_expression = f"//input[@type='submit']"
+    submit_button = driver.find_element(By.XPATH, xpath_expression)
+    try:
+        if submit_button:
+            submit_button.click()
+    except:
+        pass
 
-def ExtractData():
-    pass
+    return data
 
 def FindForm(driver): # check whether form exist in the frame.
     ret = 0
@@ -60,7 +86,7 @@ def FindForm(driver): # check whether form exist in the frame.
         xpath_expression = f"//input[@name='{field}']"
         try:
             phone_field = driver.find_element(By.XPATH, xpath_expression)
-            if phone_field:
+            if phone_field and phone_field.is_displayed():
                 # name_field.send_keys('John Doe')
                 is_phone = 1
         except:
@@ -82,7 +108,7 @@ def FindForm(driver): # check whether form exist in the frame.
 
     return ret
 
-def LeadGeneration(driver): # check whether form exist in the page.
+def LeadGeneration(driver, anchor_text): # check whether form exist in the page.
     
     # chrome_options = webdriver.ChromeOptions()
     # driver = webdriver.Chrome(options = chrome_options)
@@ -90,7 +116,7 @@ def LeadGeneration(driver): # check whether form exist in the page.
     form_exist = FindForm(driver)
 
     if form_exist:
-        FillForm(driver)
+        FillForm(driver, anchor_text)
         ExtractData()  
     else:
         frames = driver.find_elements(By.TAG_NAME, 'iframe')
@@ -102,8 +128,8 @@ def LeadGeneration(driver): # check whether form exist in the page.
             # ...
             form_exist |= FindForm(driver)
             if form_exist:
-                FillForm(driver)
-                ExtractData()
+                data = FillForm(driver, anchor_text)
+                ExtractData(data)
                 driver.switch_to.default_content()
                 break
 
@@ -174,7 +200,7 @@ def NavigateDomain(url):
                 pass
 
     
-    form_filled = LeadGeneration(driver)
+    form_filled = LeadGeneration(driver, 'hompage')
     if not form_filled:
         for word in anchor_words:
             if(form_filled):
@@ -187,7 +213,7 @@ def NavigateDomain(url):
 
                 if anchor_link:
                     anchor_link.click()
-                    form_filled = LeadGeneration(driver)
+                    form_filled = LeadGeneration(driver, word)
                     driver.back()
             except:
                 pass
@@ -200,26 +226,11 @@ def NavigateDomain(url):
                 if anchor_link:
                     print('anchor: ' + word)
                     anchor_link.click()
-                    form_filled = LeadGeneration(driver)
+                    print('anchor ', word, ' clicked')
+                    form_filled = LeadGeneration(driver, word)
                     driver.back()
             except:
                 pass
-
-    
-    # # without <span>
-    # word = 'Contact'
-    # xpath_expression = f"//a[contains(text(), '{word}')]"
-    # # xpath_expression = f"//a[contains(translate(text(), 'CONTACT', 'contact'), 'contact')]"
-    # try:
-    #     anchor_links = driver.find_elements(By.XPATH, xpath_expression)
-
-    #     if anchor_links:
-    #         print('anchor: ' + word)
-    #         anchor_links[0].click()
-    #         form_filled = LeadGeneration(driver)
-    #         driver.back()
-    # except:
-    #     pass
 
     time.sleep(5)
     # while True:
@@ -241,7 +252,8 @@ def NavigateDomain(url):
 # NavigateDomain('https://intrepidib.com/')
 # NavigateDomain('https://alpertandalpert.com/')
 # NavigateDomain('https://yscouts.com/')
-NavigateDomain('https://laneterralever.com/')
+# NavigateDomain('https://laneterralever.com/')
+# NavigateDomain('https://valorglobal.com/')
 
 
 '''
@@ -255,6 +267,7 @@ https://www.alpertandalpert.com/contact-us.html // no phone
 https://yscouts.com/contact/            // no phone
 https://valorglobal.com/get-a-quote/        // captcha
 https://myfw.com/contact/               // captcha
+https://laneterralever.com/             // cookie, popup close, no phone
 
 firstname
 lastname
