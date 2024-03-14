@@ -24,7 +24,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import time
 from urllib.parse import urlparse
 from datetime import datetime
-from .ioCSV import ExtractData
+from ioCSV import ExtractData
 
 anchor_words = ['Demo', 'Call', 'Book', 'Schedule', 'Consultation', 'Consult', 'Appointment', 'Get Started', 'Start', 'Inquire', 'Learn', 'Discover', 'More Info', 'Find Out', 'Get a Quote', 'Talk',
                 'Explore', 'Details', 'Request', 'Connect', 'Get in', 'Contact']
@@ -113,6 +113,8 @@ def LeadGeneration(driver, anchor_text): # check whether form exist in the page.
     # chrome_options = webdriver.ChromeOptions()
     # driver = webdriver.Chrome(options = chrome_options)
     # driver.get(url)
+    print('LeadGeneration', anchor_text)
+
     form_exist = FindForm(driver)
 
     if form_exist:
@@ -150,91 +152,94 @@ def NavigateDomain(url):
     # chrome_options.add_argument('--ignore-certificate-errors')
     # chrome_options.add_argument('--allow-running-insecure-content')   
 
-    driver.get(url)
-
-    # close recommandation system
     try:
-        # This XPath finds any button element whose class attribute contains the word 'close'
-        close_button = driver.find_element(By.XPATH, "//button[contains(@aria-label, 'Dismiss')]")
-        if close_button:
-            print('close button found')
-            close_button.click()
-            print("Close button clicked.")
-    except Exception as e:
-        print("Close button not clicked.")
+        driver.get(url)
 
-
-
-    # Accept cookies button
-    button_expression = f"//button[contains(text(), 'Accept')]"
-    try:
-        accept_link = driver.find_element(By.XPATH, button_expression)
-        if accept_link:
-            print('accept button clicked')
-            accept_link.click()
-    except:
-        pass
-
-    # Accept cookies <a>
-    button_expression = f"//a[contains(text(), 'Accept')]"
-    try:
-        accept_link = driver.find_element(By.XPATH, button_expression)
-        if accept_link:
-            print('accept anchor clicked')
-            accept_link.click()
-    except:
-        pass
-
-    # close popup dlg.
-    # Find the button by class name containing 'close' and click it
-    # This XPath finds any button element whose class attribute contains the word 'close'
-    close_buttons = driver.find_elements(By.XPATH, "//button[contains(@aria-label, 'close popup')]")
-    if close_buttons:
-        print('close button found')
-        for close_button in close_buttons:
-            # close_buttons[1].click()
-            try:
+        # close recommandation system
+        try:
+            # This XPath finds any button element whose class attribute contains the word 'close'
+            close_button = driver.find_element(By.XPATH, "//button[contains(@aria-label, 'Dismiss')]")
+            if close_button:
+                print('close button found')
                 close_button.click()
-            except Exception as e:
-                # print("Close button not clicked.")
-                pass
+                print("Close button clicked.")
+        except Exception as e:
+            print("Close button not clicked.")
 
-    
-    form_filled = LeadGeneration(driver, 'hompage')
-    if not form_filled:
-        for word in anchor_words:
-            if(form_filled):
-                break
-            print(word)
-            # within <span>
-            xpath_expression = f"//a[.//span[contains(text(), '{word}')]]"
-            try:
-                anchor_link = driver.find_element(By.XPATH, xpath_expression)
 
-                if anchor_link:
-                    anchor_link.click()
-                    form_filled = LeadGeneration(driver, word)
-                    driver.back()
-            except:
-                pass
 
-            # without <span>
-            xpath_expression = f"//a[contains(text(), '{word}')]"
-            try:
-                anchor_link = driver.find_element(By.XPATH, xpath_expression)
+        # Accept cookies button
+        button_expression = f"//button[contains(text(), 'Accept')]"
+        try:
+            accept_link = driver.find_element(By.XPATH, button_expression)
+            if accept_link:
+                print('accept button clicked')
+                accept_link.click()
+        except:
+            pass
 
-                if anchor_link:
-                    print('anchor: ' + word)
-                    anchor_link.click()
-                    print('anchor ', word, ' clicked')
-                    form_filled = LeadGeneration(driver, word)
-                    driver.back()
-            except:
-                pass
+        # Accept cookies <a>
+        button_expression = f"//a[contains(text(), 'Accept')]"
+        try:
+            accept_link = driver.find_element(By.XPATH, button_expression)
+            if accept_link:
+                print('accept anchor clicked')
+                accept_link.click()
+        except:
+            pass
 
-    time.sleep(5)
-    # while True:
-    #     pass
+        # close popup dlg.
+        # Find the button by class name containing 'close' and click it
+        # This XPath finds any button element whose class attribute contains the word 'close'
+        close_buttons = driver.find_elements(By.XPATH, "//button[contains(@aria-label, 'close popup')]")
+        if close_buttons:
+            print('close button found')
+            for close_button in close_buttons:
+                # close_buttons[1].click()
+                try:
+                    close_button.click()
+                except Exception as e:
+                    # print("Close button not clicked.")
+                    pass
+
+        
+        form_filled = LeadGeneration(driver, 'hompage')
+        if not form_filled:
+            for word in anchor_words:
+                if(form_filled):
+                    break
+                print(word)
+                # within <span>
+                xpath_expression = f"//a[.//span[contains(text(), '{word}')]]"
+                try:
+                    anchor_link = driver.find_element(By.XPATH, xpath_expression)
+
+                    if anchor_link:
+                        anchor_link.click()
+                        form_filled = LeadGeneration(driver, word)
+                        driver.back()
+                except:
+                    pass
+
+                # without <span>
+                xpath_expression = f"//a[contains(text(), '{word}')]"
+                try:
+                    anchor_link = driver.find_element(By.XPATH, xpath_expression)
+
+                    if anchor_link:
+                        print('anchor: ' + word)
+                        anchor_link.click()
+                        print('anchor ', word, ' clicked')
+                        form_filled = LeadGeneration(driver, word)
+                        driver.back()
+                except:
+                    pass
+
+        time.sleep(5)
+        # while True:
+        #     pass
+    except:
+        pass
     driver.quit()
 
 
@@ -246,7 +251,7 @@ def NavigateDomain(url):
 # NavigateDomain('https://indinero.com/')
 # NavigateDomain('https://jyve.com/')
 # NavigateDomain('https://parkstreet.com/')
-# NavigateDomain('https://goguardian.com/')
+NavigateDomain('https://goguardian.com/')
 # NavigateDomain('https://claylacy.com/')
 # NavigateDomain('https://marketshareonline.com/')
 # NavigateDomain('https://intrepidib.com/')
