@@ -24,10 +24,12 @@ from selenium.webdriver.support import expected_conditions as EC
 import time
 from urllib.parse import urlparse
 from datetime import datetime
-from ioCSV import ExtractData
+from .ioCSV import ExtractData
 
 anchor_words = ['Demo', 'Call', 'Book', 'Schedule', 'Consultation', 'Consult', 'Appointment', 'Get Started', 'Start', 'Inquire', 'Learn', 'Discover', 'More Info', 'Find Out', 'Get a Quote', 'Talk',
                 'Explore', 'Details', 'Request', 'Connect', 'Get in', 'Contact']
+
+# anchor_words = ['Contact']
 
 form_fields = ['firstname', 'lastname', 'name', 'email', 'company', 'company_website', 'phone', 'contact_reason', 'message']
 
@@ -224,21 +226,25 @@ def NavigateDomain(url):
                 # without <span>
                 xpath_expression = f"//a[contains(text(), '{word}')]"
                 try:
-                    anchor_link = driver.find_element(By.XPATH, xpath_expression)
+                    anchor_links = driver.find_elements(By.XPATH, xpath_expression)
 
-                    if anchor_link:
+                    for anchor_link in anchor_links:
+                        if not anchor_link.is_displayed():
+                            continue
                         print('anchor: ' + word)
                         anchor_link.click()
                         print('anchor ', word, ' clicked')
                         form_filled = LeadGeneration(driver, word)
                         driver.back()
-                except:
-                    pass
+                except Exception as e:
+                    print(e)
+                    # pass
 
         time.sleep(5)
         # while True:
         #     pass
-    except:
+    except Exception as e:
+        # print(e)
         pass
     driver.quit()
 
@@ -251,7 +257,7 @@ def NavigateDomain(url):
 # NavigateDomain('https://indinero.com/')
 # NavigateDomain('https://jyve.com/')
 # NavigateDomain('https://parkstreet.com/')
-NavigateDomain('https://goguardian.com/')
+# NavigateDomain('https://goguardian.com/')
 # NavigateDomain('https://claylacy.com/')
 # NavigateDomain('https://marketshareonline.com/')
 # NavigateDomain('https://intrepidib.com/')
