@@ -21,6 +21,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.action_chains import ActionChains
 import time
 from urllib.parse import urlparse
 from datetime import datetime
@@ -31,7 +32,7 @@ anchor_words = ['Demo', 'Call', 'Book', 'Schedule', 'Consultation', 'Consult', '
 
 # anchor_words = ['Contact']
 
-form_fields = ['firstname', 'lastname', 'name', 'email', 'company', 'company_website', 'phone', 'contact_reason', 'message']
+form_fields = ['firstname', 'First Name', 'Last Name', 'lastname', 'name', 'email', 'company', 'company_website', 'phone', 'contact_reason', 'message']
 
 phone_fields = ['phone', 'your-phone']
 
@@ -76,10 +77,18 @@ def FindForm(driver): # check whether form exist in the frame.
     # check if form exist
     for field in form_fields:
         xpath_expression = f"//input[@name='{field}']"
+        xpath_expression1 = f"//input[contains(@placeholder, '{field}')]"
         try:
             form_element = driver.find_element(By.XPATH, xpath_expression)
             if form_element:
                 ret = 1
+        except:
+            pass
+        try:
+            form_element1 = driver.find_element(By.XPATH, xpath_expression1)
+            if form_element1:
+                ret = 1
+                print('  - found with placeholder')
         except:
             pass
 
@@ -94,19 +103,23 @@ def FindForm(driver): # check whether form exist in the frame.
         except:
             # print('failed')
             pass
-
+    
+    if ret == 1:
+        print('   - field found')
     if ret == 1 and is_phone == 0:
-        print('no phone field.')
+        print('   - no phone field.')
     ret &= is_phone
 
     # check if there's captcha break
     try:
-        captcha_element = driver.find_element(By.CLASS_NAME, 'grecaptcha-logo')
-        if(captcha_element):
-            print('captcha detected')
+        captcha_element = driver.find_element(By.CLASS_NAME, 'grecaptcha-badge')
+        if captcha_element and captcha_element.get_attribute('data-style') == 'inline':
+            print('   - captcha detected')
             ret = 0
     except:
         pass
+
+    print('return the value when FindForm', ret)
 
     return ret
 
@@ -119,31 +132,50 @@ def LeadGeneration(driver, anchor_text): # check whether form exist in the page.
 
     form_exist = FindForm(driver)
 
-    if form_exist:
-        FillForm(driver, anchor_text)
-        ExtractData()  
-    else:
-        frames = driver.find_elements(By.TAG_NAME, 'iframe')
-        for index, frame in enumerate(frames):
-            # Switch to each frame by index
-            driver.switch_to.frame(index)
+    try:
+        if form_exist:
+            data = FillForm(driver, anchor_text)
+            ExtractData(data)
+        else:
+            print('form does not exist in the page', anchor_text, 'so looking into frames.')
+            frames = driver.find_elements(By.TAG_NAME, 'iframe')
+            # print('checking.......')
+            for index, frame in enumerate(frames):
+                # Switch to each frame by index
+                print(' - looking for an iframe..')
+                if not frame.is_displayed():
+                    print("form skipped due to it's not displayed.")
+                    continue
+            
+                actions = ActionChains(driver)
+                actions.move_to_element(frame).perform()
 
-            # Perform operations within the frame
-            # ...
-            form_exist |= FindForm(driver)
-            if form_exist:
-                data = FillForm(driver, anchor_text)
-                ExtractData(data)
+                src_value = frame.get_attribute('src')
+                if "video" in src_value:
+                    print(' - src value continas "video"')
+                    continue
+
+                driver.switch_to.frame(index)
+
+                # Perform operations within the frame
+                # ...
+                form_exist |= FindForm(driver)
+                if form_exist:
+                    data = FillForm(driver, anchor_text)
+                    ExtractData(data)
+                    driver.switch_to.default_content()
+                    break
+
+                # Switch back to the default content before moving to the next frame
                 driver.switch_to.default_content()
-                break
 
-            # Switch back to the default content before moving to the next frame
-            driver.switch_to.default_content()
-
-    if form_exist:
-        print('form filled')
-    else:
-        print('this page was skipped')
+        if form_exist:
+            print(' - form filled')
+        else:
+            print(' - this page was skipped')
+    except Exception as e:
+        print(e)
+        # pass
     return form_exist
 
 def NavigateDomain(url):
@@ -162,11 +194,11 @@ def NavigateDomain(url):
             # This XPath finds any button element whose class attribute contains the word 'close'
             close_button = driver.find_element(By.XPATH, "//button[contains(@aria-label, 'Dismiss')]")
             if close_button:
-                print('close button found')
+                print('#close button found')
                 close_button.click()
-                print("Close button clicked.")
+                print("#Close button clicked.")
         except Exception as e:
-            print("Close button not clicked.")
+            print("#Close button not clicked.")
 
 
 
@@ -175,7 +207,7 @@ def NavigateDomain(url):
         try:
             accept_link = driver.find_element(By.XPATH, button_expression)
             if accept_link:
-                print('accept button clicked')
+                print('@accept button clicked')
                 accept_link.click()
         except:
             pass
@@ -185,7 +217,7 @@ def NavigateDomain(url):
         try:
             accept_link = driver.find_element(By.XPATH, button_expression)
             if accept_link:
-                print('accept anchor clicked')
+                print('@accept anchor clicked')
                 accept_link.click()
         except:
             pass
@@ -195,7 +227,7 @@ def NavigateDomain(url):
         # This XPath finds any button element whose class attribute contains the word 'close'
         close_buttons = driver.find_elements(By.XPATH, "//button[contains(@aria-label, 'close popup')]")
         if close_buttons:
-            print('close button found')
+            print('&close button found')
             for close_button in close_buttons:
                 # close_buttons[1].click()
                 try:
@@ -208,7 +240,7 @@ def NavigateDomain(url):
         form_filled = LeadGeneration(driver, 'hompage')
         if not form_filled:
             for word in anchor_words:
-                if(form_filled):
+                if form_filled:
                     break
                 print(word)
                 # within <span>
@@ -231,14 +263,18 @@ def NavigateDomain(url):
                     for anchor_link in anchor_links:
                         if not anchor_link.is_displayed():
                             continue
-                        print('anchor: ' + word)
+                        print('**anchor: ' + word)
                         anchor_link.click()
-                        print('anchor ', word, ' clicked')
+                        print('**anchor ', word, ' clicked')
                         form_filled = LeadGeneration(driver, word)
                         driver.back()
                 except Exception as e:
                     print(e)
                     # pass
+            if not form_filled:
+                data = []
+                data.append('domain: ' + url + ' skipped')
+                ExtractData(data)
 
         time.sleep(5)
         # while True:
@@ -251,13 +287,13 @@ def NavigateDomain(url):
 
 
 # NavigateDomain('https://adstage.io/')
-# NavigateDomain('https://capeanalytics.com/')
+# NavigateDomain('https://capeanalytics.com/contact/')
 # NavigateDomain('https://dotloop.com/')
 # NavigateDomain('https://homelight.com/')
 # NavigateDomain('https://indinero.com/')
 # NavigateDomain('https://jyve.com/')
 # NavigateDomain('https://parkstreet.com/')
-# NavigateDomain('https://goguardian.com/')
+# NavigateDomain('https://www.goguardian.com/')
 # NavigateDomain('https://claylacy.com/')
 # NavigateDomain('https://marketshareonline.com/')
 # NavigateDomain('https://intrepidib.com/')
