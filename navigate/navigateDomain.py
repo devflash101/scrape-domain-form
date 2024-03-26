@@ -34,9 +34,9 @@ anchor_words = ['Demo', 'Call', 'Book', 'Schedule', 'Consultation', 'Consult', '
 
 form_fields = ['firstname', 'First Name', 'Last Name', 'lastname', 'name', 'email', 'company', 'company_website', 'phone', 'contact_reason', 'message']
 
-phone_fields = ['phone', 'your-phone']
+phone_fields = ['phone', 'your-phone', 'phone number', 'mobile phone']
 
-def FillForm(driver, anchor_text):
+def FillForm(driver, anchor_text, phone_require):
     data = []
 
     # keep domain url.
@@ -51,7 +51,12 @@ def FillForm(driver, anchor_text):
     data.append('time: '+ now.strftime("%H:%M:%S"))
 
     data.append('anchor text: ' + anchor_text)
-    
+
+    if phone_require == 2:
+        data.append('asterisk found')
+    else:
+        data.append('asterisk not found')
+
     for field in form_fields:
         try:
             form_element = driver.find_element(By.NAME, field)
@@ -67,6 +72,7 @@ def FillForm(driver, anchor_text):
             submit_button.click()
     except:
         pass
+
 
     return data
 
@@ -100,15 +106,42 @@ def FindForm(driver): # check whether form exist in the frame.
             if phone_field and phone_field.is_displayed():
                 # name_field.send_keys('John Doe')
                 is_phone = 1
+                # check for asterisk
+                placeholder_text = phone_field.get_attribute('placeholder')
+                if '*' in placeholder_text:
+                    print('The placeholder contains an asterisk.')
+                    is_phone = 2
+                else:
+                    print('The placeholder does not contain an asterisk.')
+
+                asterisk_expression = f"//label[.//span[contains(., '{field}')]]"
+                try:
+                    phone_label = driver.find_element(By.XPATH, asterisk_expression)
+                    if phone_label:
+                        label_html = phone_label.get_attribute('innerHTML')
+                        # print('Full Name label found.')
+                        if '*' in label_html:
+                            is_phone = 2
+                            print('An asterisk is present within the label.')
+                        else:
+                            print("No asterisk found in label:")
+                            # Do something if no asterisk is found
+                except:
+                    pass
         except:
             # print('failed')
             pass
     
     if ret == 1:
         print('   - field found')
-    if ret == 1 and is_phone == 0:
-        print('   - no phone field.')
-    ret &= is_phone
+        if is_phone == 0:
+            print('   - no phone field.')
+            ret = -1
+        if is_phone == 2:
+            print('   - phone field is required')
+            ret = 2
+            pass
+    # ret &= is_phone
 
     # check if there's captcha break
     try:
@@ -133,8 +166,8 @@ def LeadGeneration(driver, anchor_text): # check whether form exist in the page.
     form_exist = FindForm(driver)
 
     try:
-        if form_exist:
-            data = FillForm(driver, anchor_text)
+        if form_exist > 0:
+            data = FillForm(driver, anchor_text, form_exist)
             ExtractData(data)
         else:
             print('form does not exist in the page', anchor_text, 'so looking into frames.')
@@ -159,9 +192,9 @@ def LeadGeneration(driver, anchor_text): # check whether form exist in the page.
 
                 # Perform operations within the frame
                 # ...
-                form_exist |= FindForm(driver)
-                if form_exist:
-                    data = FillForm(driver, anchor_text)
+                form_exist = FindForm(driver)
+                if form_exist > 0:
+                    data = FillForm(driver, anchor_text, form_exist)
                     ExtractData(data)
                     driver.switch_to.default_content()
                     break
@@ -169,7 +202,7 @@ def LeadGeneration(driver, anchor_text): # check whether form exist in the page.
                 # Switch back to the default content before moving to the next frame
                 driver.switch_to.default_content()
 
-        if form_exist:
+        if form_exist > 0:
             print(' - form filled')
         else:
             print(' - this page was skipped')
@@ -238,9 +271,9 @@ def NavigateDomain(url):
 
         
         form_filled = LeadGeneration(driver, 'hompage')
-        if not form_filled:
+        if not form_filled > 0:
             for word in anchor_words:
-                if form_filled:
+                if form_filled > 0:
                     break
                 print(word)
                 # within <span>
@@ -271,9 +304,13 @@ def NavigateDomain(url):
                 except Exception as e:
                     print(e)
                     # pass
-            if not form_filled:
+            if not form_filled > 0:
                 data = []
-                data.append('domain: ' + url + ' skipped')
+                if form_filled == 0:
+                    data.append('domain: ' + url + ' skipped because no form found')
+                else:
+                    data.append('domain: ' + url + ' skipped because no phone field found')
+
                 ExtractData(data)
 
         time.sleep(5)
