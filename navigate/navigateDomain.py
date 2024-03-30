@@ -222,30 +222,6 @@ def NavigateDomain(url):
     try:
         driver.get(url)
 
-        # site returns ERROR
-        try:
-            title_element = driver.find_element(By.XPATH, "//title")
-            if title_element:
-                title_text = title_element.get_attribute('textContent')
-                if "ERROR" in title_text:
-                    data = []                
-                    current_url = driver.current_url
-                    parsed_url = urlparse(current_url)
-                    data.append('domain: ' + parsed_url.netloc)
-                    
-                    try:
-                        h1_xpath = "/html/body/h1"
-                        h1_element = driver.find_element(By.XPATH, h1_xpath)
-                        h1_text = h1_element.text
-                        data.append(' skipped because ' + h1_text)
-                    except:
-                        data.append(' skipped because Page ERROR')
-                    
-                    ExtractData(data)
-                    return
-        except:
-            pass
-
         # close recommandation system
         try:
             # This XPath finds any button element whose class attribute contains the word 'close'
