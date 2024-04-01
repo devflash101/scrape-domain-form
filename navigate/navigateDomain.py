@@ -148,7 +148,7 @@ def FindForm(driver): # check whether form exist in the frame.
         captcha_element = driver.find_element(By.CLASS_NAME, 'grecaptcha-badge')
         if captcha_element and captcha_element.get_attribute('data-style') == 'inline':
             print('   - captcha detected')
-            ret = 0
+            ret = -2
     except:
         pass
 
@@ -308,6 +308,8 @@ def NavigateDomain(url):
                 data = []
                 if form_filled == 0:
                     data.append('domain: ' + url + ' skipped because no form found')
+                elif form_filled == -2:
+                    data.append('domain: ' + url + ' skipped because CAPTCHA detected.')
                 else:
                     data.append('domain: ' + url + ' skipped because no phone field found')
 
